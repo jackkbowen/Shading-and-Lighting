@@ -81,7 +81,7 @@ function main() {
 
 
   // Set the clear color and enable the depth test
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.clearColor(0.0, 0.0, 0.0, 0.0);
   gl.enable(gl.DEPTH_TEST);
 
   // Clear color and depth buffer
@@ -111,7 +111,7 @@ function main() {
   viewMatrix.setPerspective(100, canvas.width/canvas.height, 1, 100);
   // Pass the model and view projection matrixes to the variables u_ViewMatrix and u_MvpMatrix
   gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
-  gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements)
+  
 
 
   // Listener for when the checkbox is checked
@@ -146,7 +146,7 @@ function main() {
   var checkbox = document.getElementById('toggleSpecular');
   checkbox.addEventListener('click', function(){
     toggleSpecular = toggleSpecular ? false : true;
-    switchRender(gl, u_MvpMatrix, u_NormalMatrix)
+    renderSOR(gl, u_MvpMatrix, u_NormalMatrix);
   });
 
 
@@ -288,6 +288,7 @@ function initVertexBuffersCube(gl) {
   return indices.length;
 }
 
+
 function initArrayBuffer (gl, attribute, data, num, type) {
   // Create a buffer object
   var buffer = gl.createBuffer();
@@ -325,6 +326,10 @@ function popMatrix() {
 }
 
 function renderSOR(gl, u_MvpMatrix, u_NormalMatrix) {
+  // Pass the model and view projection matrixes to the variables u_MvpMatrix
+  gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements)
+
+
 
   // Clear color and depth buffer
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -367,6 +372,8 @@ function renderSOR(gl, u_MvpMatrix, u_NormalMatrix) {
   mvpMatrix.rotate(rotation[2], 0, 0, 1);  
   renderObject(gl, u_MvpMatrix, u_NormalMatrix, n);
   mvpMatrix = popMatrix();
+
+  initVertexBuffersSphere(gl);
 }
 
 function renderObject(gl, u_MvpMatrix, u_NormalMatrix, n) {
@@ -422,3 +429,75 @@ function switchRender(gl, u_MvpMatrix, u_NormalMatrix) {
   console.log(wireframeToggle);
   renderSOR(gl, u_MvpMatrix, u_NormalMatrix);
 }
+
+
+
+
+
+
+
+/*
+
+function initVertexBuffersSphere(gl) { // Create a sphere
+  var SPHERE_DIV = 13;
+
+  var i, ai, si, ci;
+  var j, aj, sj, cj;
+  var p1, p2;
+
+  var positions = [];
+  var indices = [];
+
+  // Generate coordinates
+  for (j = 0; j <= SPHERE_DIV; j++) {
+    aj = j * Math.PI / SPHERE_DIV;
+    sj = Math.sin(aj);
+    cj = Math.cos(aj);
+    for (i = 0; i <= SPHERE_DIV; i++) {
+      ai = i * 2 * Math.PI / SPHERE_DIV;
+      si = Math.sin(ai);
+      ci = Math.cos(ai);
+
+      positions.push(si * sj);  // X
+      positions.push(cj);       // Y
+      positions.push(ci * sj);  // Z
+    }
+  }
+
+  // Generate indices
+  for (j = 0; j < SPHERE_DIV; j++) {
+    for (i = 0; i < SPHERE_DIV; i++) {
+      p1 = j * (SPHERE_DIV+1) + i;
+      p2 = p1 + (SPHERE_DIV+1);
+
+      indices.push(p1);
+      indices.push(p2);
+      indices.push(p1 + 1);
+
+      indices.push(p1 + 1);
+      indices.push(p2);
+      indices.push(p2 + 1);
+    }
+  }
+
+  // Write the vertex property to buffers (coordinates and normals)
+  // Same data can be used for vertex and normal
+  // In order to make it intelligible, another buffer is prepared separately
+  if (!initArrayBuffer(gl, 'a_Position', new Float32Array(positions), gl.FLOAT, 3)) return -1;
+  if (!initArrayBuffer(gl, 'a_Normal', new Float32Array(positions), gl.FLOAT, 3))  return -1;
+  
+  // Unbind the buffer object
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+  // Write the indices to the buffer object
+  var indexBuffer = gl.createBuffer();
+  if (!indexBuffer) {
+    console.log('Failed to create the buffer object');
+    return -1;
+  }
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+  return indices.length;
+}
+ */
