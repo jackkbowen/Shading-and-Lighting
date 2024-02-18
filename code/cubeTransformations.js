@@ -9,6 +9,7 @@ var VSHADER_SOURCE =
   'uniform mat4 u_ViewMatrix;\n' +
   'uniform vec3 u_LightColor;\n' +     
   'uniform vec3 u_LightDirection;\n' + 
+  'uniform vec3 u_AmbientLight;\n' +  // Ambient light color
   'varying vec4 v_Color;\n' +
   'void main() {\n' +
   '  gl_Position = u_ViewMatrix * u_MvpMatrix * a_Position ;\n' +
@@ -19,7 +20,10 @@ var VSHADER_SOURCE =
   // Calculate the color due to diffuse reflection  
   // $I_d = L_dK_d \hat{L}\cdot\hat{N}
   '  vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
-  '  v_Color = vec4(diffuse, a_Color.a);\n' +
+  // Calculate the color due to ambient reflection
+  '  vec3 ambient = u_AmbientLight * a_Color.rgb;\n' +
+  //  Add the surface colors due to diffuse reflection and ambient reflection
+  '  v_Color = vec4(diffuse + ambient, a_Color.a);\n' + 
   '}\n';
 
 // Fragment shader program
@@ -45,6 +49,19 @@ var yAngle = 0.0;
 // Bool for if obj should be rendered in Wireframe (true) or Flat Shadding (false)
 var wireframeToggle = false; 
 var initialTime = 0;
+
+const maxScale = 2;
+const maxMove = [3, 3, 3];
+
+let wireframe = false;
+let scaleAmount = 1;
+let moveAmount = new Float32Array([-1.0, 0.0, 0.0]);  // x, y, z
+let rotation = [0, 0, 0];
+
+var toggleAmbient = true; 
+var toggleDiffused = true; 
+var toggleSpecular = true; 
+
 
 function main() {
   // webgl starter code
@@ -76,19 +93,19 @@ function main() {
   var u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
   var u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
   var u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
-
-  if (!u_MvpMatrix || !u_ViewMatrix || !u_NormalMatrix || !u_LightColor || !u_LightDirection) { 
+  var u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
+  if (!u_MvpMatrix || !u_ViewMatrix || !u_NormalMatrix || !u_LightColor || !u_LightDirection || !u_AmbientLight) { 
     console.log('Failed to get the storage Location');
     return;
   }
 
   // Set the light color (white)
-  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
+  gl.uniform3f(u_LightColor, 1, 1, 1);
   // Set the light direction (in the world coordinate)
-  var lightDirection = new Vector3([1.0, 1.0, 1.0]);
-  lightDirection.normalize();     // Normalize
-  gl.uniform3fv(u_LightDirection, lightDirection.elements);
-
+  gl.uniform3f(u_LightDirection, 1, 1, 1);
+  // Set the ambient light
+  gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+  
   // Calculate the view projection matrix
   viewMatrix.setLookAt(0, 0, 10, 0, 0, 0, 0, 1, 0);
   viewMatrix.setPerspective(100, canvas.width/canvas.height, 1, 100);
@@ -104,11 +121,81 @@ function main() {
   checkbox.addEventListener('click', function(){
     switchRender(gl, u_MvpMatrix, u_NormalMatrix)
   });
+  var checkbox = document.getElementById('toggleAmbient');
+  checkbox.addEventListener('click', function(){
+    toggleAmbient = toggleAmbient ? false : true;
+    if (!toggleAmbient) {
+      gl.uniform3f(u_AmbientLight, 0, 0, 0);
+    }
+    else
+    gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+      renderSOR(gl, u_MvpMatrix, u_NormalMatrix);
+  });
+
+  var checkbox = document.getElementById('toggleDiffused');
+  checkbox.addEventListener('click', function(){
+    toggleDiffused = toggleDiffused ? false : true;
+    if (!toggleDiffused) {
+      gl.uniform3f(u_LightColor, 0, 0, 0);
+    }
+    else
+      gl.uniform3f(u_LightColor, 1.0, 1,0, 1.0);
+      renderSOR(gl, u_MvpMatrix, u_NormalMatrix);
+  });
+
+  var checkbox = document.getElementById('toggleSpecular');
+  checkbox.addEventListener('click', function(){
+    toggleSpecular = toggleSpecular ? false : true;
+    switchRender(gl, u_MvpMatrix, u_NormalMatrix)
+  });
+
 
   // Listener for when an arrow key is pressed
   document.onkeydown = function(ev){
     keydown(ev, gl, u_MvpMatrix, u_NormalMatrix);
   };
+
+  document.getElementById("scale").addEventListener("input", function() {
+    scaleAmount = this.value / (100 / maxScale);
+    console.log(scaleAmount);
+    renderSOR(gl, u_MvpMatrix, u_NormalMatrix);
+  });
+
+  document.getElementById("moveX").addEventListener("input", function() {
+    moveAmount[0] = this.value / (100 / maxMove[0]);
+    console.log(moveAmount[0]);
+    renderSOR(gl, u_MvpMatrix, u_NormalMatrix);
+  });
+
+  document.getElementById("moveY").addEventListener("input", function() {
+    moveAmount[1] = this.value / (100 / maxMove[1]);
+    console.log(moveAmount[1]);
+    renderSOR(gl, u_MvpMatrix, u_NormalMatrix);
+  });
+
+  document.getElementById("moveZ").addEventListener("input", function() {
+    moveAmount[2] = this.value / (100 / maxMove[2]);
+    console.log( moveAmount[2]);
+    renderSOR(gl, u_MvpMatrix, u_NormalMatrix);
+  });
+
+  document.getElementById("rotationX").addEventListener("input", function() {
+    rotation[0] = this.value;
+    console.log(rotation[0]);
+    renderSOR(gl, u_MvpMatrix, u_NormalMatrix);
+  });
+
+  document.getElementById("rotationY").addEventListener("input", function() {
+    rotation[1] = this.value;
+    console.log(rotation[1]);
+    renderSOR(gl, u_MvpMatrix, u_NormalMatrix);
+  });
+
+  document.getElementById("rotationZ").addEventListener("input", function() {
+    rotation[2] = this.value;
+    console.log(rotation[2]);
+    renderSOR(gl, u_MvpMatrix, u_NormalMatrix);
+  });
 
   // Draw the scene repeatedly
   // Loops so it will continously draw the object
@@ -226,6 +313,17 @@ function initArrayBuffer (gl, attribute, data, num, type) {
   return true;
 }
 
+// Add an obj to the render queue
+function pushMatrix(oldMatrix) { 
+  var newMatrix = new Matrix4(oldMatrix);
+  objectArray.push(newMatrix);
+}
+
+// Remove an obj from the render queue
+function popMatrix() { 
+  return objectArray.pop();
+}
+
 function renderSOR(gl, u_MvpMatrix, u_NormalMatrix) {
 
   // Clear color and depth buffer
@@ -250,22 +348,29 @@ function renderSOR(gl, u_MvpMatrix, u_NormalMatrix) {
   mvpMatrix.rotate(xAngle, 1, 0, 0); 
 
   // Draw the First Cube
-  
-  mvpMatrix.translate(1, 0, 0);
-  mvpMatrix.rotate(295, 1, 0, 0);  
+  pushMatrix(mvpMatrix);
+  mvpMatrix.scaleAmount
+  mvpMatrix.translate(moveAmount[0], moveAmount[1], moveAmount[2]);
+  mvpMatrix.rotate(rotation[0], 0, 1, 0); 
+  mvpMatrix.rotate(rotation[1], 1, 0, 0);  
+  mvpMatrix.rotate(rotation[2], 0, 0, 1);  
   renderObject(gl, u_MvpMatrix, u_NormalMatrix, n);
   mvpMatrix = popMatrix();
 
   // Draw the Second Cube
-  
-  mvpMatrix.translate(-1, 0, 0);
-  mvpMatrix.rotate(55, 1, 0, 0);  
+  pushMatrix(mvpMatrix);
+  mvpMatrix.scaleAmount
+  mvpMatrix.translate(2, 0, 0);
+  mvpMatrix.translate(moveAmount[0], moveAmount[1], moveAmount[2]);
+  mvpMatrix.rotate(rotation[0], 1, 0, 0); 
+  mvpMatrix.rotate(rotation[1], 0, 1, 0);  
+  mvpMatrix.rotate(rotation[2], 0, 0, 1);  
   renderObject(gl, u_MvpMatrix, u_NormalMatrix, n);
   mvpMatrix = popMatrix();
 }
 
 function renderObject(gl, u_MvpMatrix, u_NormalMatrix, n) {
-  
+  pushMatrix(mvpMatrix);
 
   // Pass the model matrix to the uniform variable
   gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
