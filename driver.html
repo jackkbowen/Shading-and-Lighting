@@ -14,13 +14,19 @@
         <label for="toggleAmbient">Ambient Toggle </label>
         <input type="checkbox" id="toggleAmbient" checked>
         <label for="toggleDiffused">Diffused Toggle </label>
-        <input type="checkbox" id="toggleDiffused" checked>
+        <input type="checkbox" id="toggleDiffused" >
         <label for="toggleSpecular">Specular Toggle </label>
         <input type="checkbox" id="toggleSpecular">
         <br>
-        <Label>Scale    </Label><input type="range" min="1" max="100" value="50", id = "scale">
+        <label for="toggleDir">Directional Light Toggle </label>
+        <input type="checkbox" id="toggleDir" checked>
+        <label for="togglePoint">Point Light Toggle </label>
+        <input type="checkbox" id="togglePoint">
+        <label for="toggleGouraud">Gouraud Toggle </label>
+        <input type="checkbox" id="toggleGouraud">
         <br>
-        <Label>Translate X    </Label><input type="range" min="-100" max="100" value="50", id = "moveX">
+
+        <Label>Translate X    </Label><input type="range" min="-100" max="100" value="0", id = "moveX">
         <Label>Y    </Label><input type="range" min="-100" max="100" value="0", id = "moveY">
         <Label>Z    </Label><input type="range" min="-100" max="100" value="0", id = "moveZ">
         <br>
@@ -37,6 +43,6 @@
     <script src="../code/lib/webgl-debug.js"></script>
     <script src="../code/lib/cuon-utils.js"></script>
     <script src="../code/lib/cuon-matrix.js"></script>
-    <script src="../code/cubeTransformations.js"></script>
+    <script src="../code/ShadingAndLighting.js"></script>
   </body>
 </html>
